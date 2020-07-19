@@ -22,10 +22,10 @@
                     </ul>
 
                     <div class="color-box"
-                        v-for="variant in variants"
+                        v-for="(variant, index) in variants"
                         v-bind:key="variant.variantId"
                         v-bind:style="{ backgroundColor: variant.variantColor }"
-                        v-on:mouseover="changeSocksColor(variant.variantImage)"
+                        v-on:mouseover="updateProduct(index)"
                     >
                     </div>
                 </div>
