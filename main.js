@@ -1,3 +1,75 @@
+Vue.component('product-review', {
+    template: `
+        <form class = "review-form" @submit.prevent = "onSubmit"> <!--.prevent is event modifier used to prevent page reload on submit-->
+            <p class = "error" v-if = "errors.length">
+                <i>Please correct the following errors:</i>
+                <ul>
+                    <li v-for = "error in errors">{{ error }}</li>
+                </ul>
+            </p>
+        
+            <p>
+                <label for = "name">Name:</label>
+                <input id = "name" v-model = "name" placeholder = "Name">
+            </p>
+            <p>
+                <label for = "review">Review:</label>
+                <textarea id = "review" v-model = "review"></textarea>
+            </p>
+
+            <p>
+                <label for = "rating">Rating:</label>
+                <select id = "rating" v-model.number = "rating"> <!--ensures data is converted to integer vs. a string-->>
+                    <option>5</option>
+                    <option>4</option>
+                    <option>3</option>
+                    <option>2</option>
+                    <option>1</option>
+                </select>
+            </p>
+
+            <p>
+                <input type = "submit" value = "Submit">
+            </p>
+        </form>
+    `,
+    data() {
+        return {
+            name: null,
+            review: null,
+            rating: null,
+            errors: []
+        }
+    },
+    methods: {
+        onSubmit() {
+            this.errors = []
+            if(this.name && this.review && this.rating){
+                let productReview = {
+                    name : this.name,
+                    review: this.review,
+                    rating: this.rating
+                }
+                this.$emit('review-submitted', productReview)
+                this.name = null
+                this.review = null
+                this.rating = null
+            } 
+            else {
+                if(!this.name) this.errors.push("Name required.") // Means if name data is empty push msg to errors array.
+                if(!this.review) this.errors.push("Review required.")
+                if(!this.rating) this.errors.push("Rating required.")
+            }
+        }
+    }
+})
+//Simple example with if() with null
+// if(!null)  // this.name or this.review or this.rating can equal null in that else block.
+//   console.log("yep")
+// else
+//     console.log("nope")
+// => Outputs "yep"
+
 Vue.component('product', {
     props: {
         premium: {          //Product component is expected to receive this
@@ -34,6 +106,18 @@ Vue.component('product', {
                     Add to Cart
                 </button>
             </div>
+            <div>
+                <h2>Reviews</h2>
+                <p v-if = "!reviews.length">There are no reviews yet.</p>
+                <ul>
+                    <li v-for="review in reviews">
+                        <p>{{ review.name }}</p>
+                        <p>Ratings: {{review.rating}}</p>
+                        <p>{{ review.review }}</p>
+                    </li>
+                </ul>
+            </div>
+            <product-review v-on:review-submitted = "addReview"></product-review>
         </div>
     `,
     data() {                                // returns a fresh data object for each component
@@ -56,15 +140,19 @@ Vue.component('product', {
                     variantImage: "./assets/vmSocks-blue-onWhite.jpg",
                     variantQuantity: 0
                 }
-            ]
+            ],
+            reviews: []
         }
     },
     methods: {
         addToCart : function(){
-            this.$emit('add-to-cart');
+            this.$emit('add-to-cart', this.variants[this.selectedVariant].variantId);
         },
         updateProduct(index){ // index is 0, 1. NOT 2234, 2235 etc.
             this.selectedVariant = index;
+        },
+        addReview(productReview){
+            this.reviews.push(productReview)
         }
     },
     computed:{
@@ -89,11 +177,11 @@ var app = new Vue({
     el: '#app', // Plugging into an element in the DOM
     data: {
         premium: true,
-        cart: 0
+        cart: []
     },
     methods:{
-        updateCart : function(){
-            this.cart++;
+        updateCart : function(id){
+            this.cart.push(id);
         }
     }
 })

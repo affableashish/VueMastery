@@ -9,10 +9,11 @@
         <div class="nav-bar"></div>
         <div id="app">
             <div class="cart">
-                <p>Cart {{ cart }}</p>
+                <p>Cart {{ cart.length }}</p>
             </div>
             <product v-bind:premium="premium" v-on:add-to-cart="updateCart"></product> 
             <!--Giving product component a prop/ custom attribute premium that is binding to the the premium from our root instance's data.-->
+            <!--Adding a event listener using v-on that listens to 'add-to-cart' event-->
         </div>
         <script src="./js/vue.js"></script>
         <script src="main.js"></script>
