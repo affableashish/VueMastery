@@ -1,6 +1,63 @@
+var eventBus = new Vue()
+
+Vue.component('product-tabs', {
+    props:{
+        reviews:{
+            type: Array,
+            required: false
+        }
+    },
+    template:`
+        <div>
+            <div>
+                <!-- v-on:click = "selectedTab = tab": a click on this span will set value of selectedTab in data. -->
+                <!-- v-bind:class = "{activeTab: selectedTab === tab}": apply activeTab class when it is true that selectedTab is equal to tab. -->
+                <!-- For eg: When first tab is clicked, selectedTab will be 'Reviews' and the tab will be 'Reviews'. So activeTab will be applied since they're equivalent. -->
+
+                <span class = "tab" 
+                     v-for = "(tab, index) in tabs"
+                     v-bind:key = "index"
+                     v-on:click = "selectedTab = tab" 
+                     v-bind:class = "{activeTab: selectedTab === tab}"
+                >{{ tab }}</span>
+            </div>
+
+            <!-- moved here from the product component. Displays when "Reviews is clicked." -->
+            <!-- reviews lives in product comp. so it needs to be sent here using props. -->
+
+            <div v-show = "selectedTab === 'Reviews'">
+                <p v-if = "!reviews.length">There are no reviews yet.</p>
+                <ul>
+                    <li v-for="review in reviews">
+                        <p>{{ review.name }}</p>
+                        <p>Ratings: {{review.rating}}</p>
+                        <p>{{ review.review }}</p>
+                    </li>
+                </ul>
+            </div>
+            <div v-show = "selectedTab === 'Make a review'">
+                <!-- moved here from product component.  -->
+                <!-- <product-review v-on:review-submitted = "addReview"></product-review> will throw this error: Property or method "addReview" is not defined on the instance but referenced during render. -->
+                <!-- product-review emits review-submitted event and that is catched here but addReview is the method in the product component and not in the product-tabs component. -->
+                <!-- product-review component is a child of product-tabs component, which is a child of the product component. So, product-review is a grandchild of product. -->
+
+                <product-review></product-review>
+            </div>
+        </div>
+    `,
+    data(){
+        return{
+            tabs: ['Reviews', 'Make a review'], // Will be using them as title for each tab
+            selectedTab: 'Reviews' // This will be set from v-on:click
+        }
+    }
+})
+
 Vue.component('product-review', {
     template: `
-        <form class = "review-form" @submit.prevent = "onSubmit"> <!--.prevent is event modifier used to prevent page reload on submit-->
+        <!--.prevent is event modifier used to prevent page reload on submit-->
+
+        <form class = "review-form" @submit.prevent = "onSubmit">
             <p class = "error" v-if = "errors.length">
                 <i>Please correct the following errors:</i>
                 <ul>
@@ -50,7 +107,11 @@ Vue.component('product-review', {
                     review: this.review,
                     rating: this.rating
                 }
-                this.$emit('review-submitted', productReview)
+                //this.$emit('review-submitted', productReview)
+                // After this we no longer need to listen for review-submitted event on the product-tabs component. So that can be removed.
+                // <product-review v-on:review-submitted = "addReview"></product-review> TO <product-review></product-review>
+                eventBus.$emit('review-submitted', productReview)
+
                 this.name = null
                 this.review = null
                 this.rating = null
@@ -84,8 +145,7 @@ Vue.component('product', {
             </div>
             <div class="product-info">
                 <h1>{{ product }}</h1>
-                <p v-if="inventory > 10">In Stock</p>
-                <p v-else-if="inventory <= 10 && inventory > 0">Almost sold out!</p>
+                <p v-if="inStock">In Stock</p>
                 <p v-else>Out of stock</p>
                 <p>Shipping: {{ shipping }}</p>
                 <ul>
@@ -106,18 +166,8 @@ Vue.component('product', {
                     Add to Cart
                 </button>
             </div>
-            <div>
-                <h2>Reviews</h2>
-                <p v-if = "!reviews.length">There are no reviews yet.</p>
-                <ul>
-                    <li v-for="review in reviews">
-                        <p>{{ review.name }}</p>
-                        <p>Ratings: {{review.rating}}</p>
-                        <p>{{ review.review }}</p>
-                    </li>
-                </ul>
-            </div>
-            <product-review v-on:review-submitted = "addReview"></product-review>
+
+            <product-tabs v-bind:reviews = "reviews"></product-tabs>
         </div>
     `,
     data() {                                // returns a fresh data object for each component
@@ -151,9 +201,6 @@ Vue.component('product', {
         updateProduct(index){ // index is 0, 1. NOT 2234, 2235 etc.
             this.selectedVariant = index;
         },
-        addReview(productReview){
-            this.reviews.push(productReview)
-        }
     },
     computed:{
         image(){
@@ -170,6 +217,26 @@ Vue.component('product', {
                 return "2.99"
             }
         }
+    },
+    // mounted() SHOULD NOT BE PUT INSIDE methods array
+    // addReview(productReview){
+    //     this.reviews.push(productReview)
+    // }
+    //when the eventBus emits the review-submitted event, take its payload (the productReview) and push it into product's reviews array.
+    // mounted is a lifecycle hook (which is a function) that is called once the component is mounted to the DOM.
+    //Once product component has mounted, it will be listening for the review-submitted event.
+    // mounted(){
+    //     eventBus.$on('review-submitted', productReview => {
+    //         this.reviews.push(productReview)
+    //     })
+    // }
+    //arrow function syntax here because an arrow function is bound to its parent’s context. In other words, when we say this inside the function, it refers to this component/instance.
+    //If no arrow, we need to manually bind the component's this to that function.
+    mounted(){
+        eventBus.$on('review-submitted', function(productReview) {
+            debugger
+            this.reviews.push(productReview)
+            }.bind(this))
     }
 })
 
